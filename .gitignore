@@ -1,0 +1,7 @@
+# 构建产物
+src/*.o
+myos.elf
+
+# 编辑器/系统
+*.swp
+.DS_Store
