@@ -14,9 +14,9 @@ CXXFLAGS = -ffreestanding -nostdlib \
 LDFLAGS = -T linker.ld -nostdlib -ffreestanding -static -no-pie
 
 # 源文件
-CXX_SOURCES = src/main.cpp src/uart.cpp src/printf.cpp
+CXX_SOURCES = src/main.cpp src/uart.cpp src/printf.cpp src/exception_handler.cpp
 ASM_SOURCES = src/boot.S src/exception.S
-OBJECTS = src/boot.o src/main.o src/uart.o src/printf.o src/exception.o
+OBJECTS = src/boot.o src/main.o src/uart.o src/printf.o src/exception.o src/exception_handler.o
 
 # 默认目标
 all: myos.elf
