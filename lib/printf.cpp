@@ -1,5 +1,5 @@
-#include "printf.hpp"
-#include "uart.hpp"
+#include "lib/printf.hpp"
+#include "drivers/uart.hpp"
 
 /* INT64 取反会溢出,这里用 u64 直接表示其绝对值 */
 static constexpr u64 INT64_MIN_ABS = (u64)1 << 63;

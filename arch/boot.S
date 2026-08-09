@@ -19,6 +19,7 @@ _start:
     ldr x0, =vector_table
     msr VBAR_EL1, x0          /* 设置中断向量表，msr 是 "Move to System Register" 的缩写，用于将数据写入系统寄存器 */
     isb                        /* 指令同步屏障,确保后续指令看到新 VBAR */
+    msr DAIFClr, #2           /* 开放 IRQ */
     /* TODO 3: 跳到 kmain */
     /*   bl kmain */
     bl kmain                  /* 跳转到 kmain,返回地址存 x30 */

@@ -1,7 +1,7 @@
 #!/bin/bash
 qemu-system-aarch64 \
-    -M virt \
+    -M virt,gic-version=3 \
     -cpu cortex-a72 \
     -m 128M \
     -nographic \
-    -kernel myos.elf
+    -kernel build/myos.elf

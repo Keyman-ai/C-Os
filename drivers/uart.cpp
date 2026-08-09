@@ -1,4 +1,4 @@
-#include "uart.hpp"
+#include "drivers/uart.hpp"
 
 /* PL011 MMIO 基地址 */
 constexpr u32 UART_BASE = 0x09000000;
@@ -38,4 +38,19 @@ void uart_puts(const char* s) {
     /* TODO 7: 循环调用 uart_putc 直到 '\0' */
     while (*s)
         uart_putc(*s++);
+}
+
+char uart_getc() {
+    /* 轮询 RXFE (bit 4), 等它为 0 = 有数据 */
+    while (*reg(UARTFR_OFFSET) & (1 << 4))
+        ;
+    return (char)*reg(UARTDR_OFFSET);
+}
+
+int uart_getc_nonblock() {
+    /* RXFE(bit 4) = 1 表示接收 FIFO 空:没有输入 */
+    if (*reg(UARTFR_OFFSET) & (1 << 4)) {
+        return -1;
+    }
+    return *reg(UARTDR_OFFSET) & 0xFF;
 }

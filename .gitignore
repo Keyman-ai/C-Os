@@ -1,6 +1,5 @@
 # 构建产物
-src/*.o
-myos.elf
+build/
 
 # 编辑器/系统
 *.swp
