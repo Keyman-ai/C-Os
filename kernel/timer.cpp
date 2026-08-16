@@ -1,6 +1,5 @@
 #include "kernel/timer.hpp"
 #include "arch/sysreg.hpp"
-#include "lib/printf.hpp"
 #include "kernel/sched.hpp"
 void timer_init()
 {
@@ -24,7 +23,9 @@ extern "C" void irq_handler()
     if (id == 30) {
         u64 freq = READ_SYSREG(CNTFRQ_EL0);
         WRITE_SYSREG(CNTP_CVAL_EL0, READ_SYSREG(CNTPCT_EL0) + freq / 5);
-        printf("tick\n");
+        /* 中断上下文：不 printf（会与任务上下文抢 UART 造成打印交错），
+         * 只做两件无副作用的事：累计时间+唤醒睡眠任务，然后照旧抢占 */
+        tick_update();                  /* 累计毫秒 + 唤醒睡到点的任务 */
         schedule();                     /* 时间片到：抢占，切换下一个线程 */
     }
 }

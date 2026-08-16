@@ -1,8 +1,14 @@
 #include "lib/printf.hpp"
 #include "drivers/uart.hpp"
+#include "kernel/sem.hpp"
 
 /* INT64 取反会溢出,这里用 u64 直接表示其绝对值 */
 static constexpr u64 INT64_MIN_ABS = (u64)1 << 63;
+
+/* 打印互斥锁：内置在 printf 里，调用者无需手动加锁。
+ * 用 C 风格聚合初始化（count=1 即互斥锁），避免依赖 C++ 静态构造。
+ * 前提：printf 只在任务上下文被调用（异常/中断路径用裸 UART，见 exception_handler.cpp）。 */
+static Semaphore print_lock = {1, 0, 0};
 
 static void print_unsigned(u64 num, u32 base, bool upper) {
     char buf[32];  // 用于存储转换后的数字字符
@@ -22,7 +28,7 @@ static void print_unsigned(u64 num, u32 base, bool upper) {
         }
         num /= base;
     } while (num > 0);
-    
+
     // 反向输出字符数组
     while (--i >= 0) {
         uart_putc(buf[i]);
@@ -47,6 +53,8 @@ static void print_signed(s64 num, u32 base) {
 void printf(const char* fmt, ...) {
     __builtin_va_list ap;
     __builtin_va_start(ap, fmt);
+
+    sem_wait(&print_lock);   /* 拿锁：保证整段输出不被其他任务打断 */
 
     while (*fmt) {
         if (*fmt != '%') {
@@ -107,4 +115,6 @@ void printf(const char* fmt, ...) {
     }
 
     __builtin_va_end(ap);
+
+    sem_post(&print_lock);   /* 放锁 */
 }

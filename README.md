@@ -4,11 +4,16 @@
 
 ## 特性
 
-- **UART 串口驱动**：PL011 驱动 + 自定义 `printf`（`%d %i %u %x %X %c %s %p`）
+- **UART 串口驱动**：PL011 驱动 + 自定义 `printf`（`%d %i %u %x %X %c %s %p`，
+  内部内置互斥锁，输出天然互斥不交错）
 - **异常处理**：完整的 16 项异常向量表，保存全部寄存器现场，打印异常类型后停机
+  （异常路径用裸 UART 输出，不碰 printf 锁，任何上下文都安全）
 - **GICv3 + 定时器**：中断控制器初始化，ARM 通用定时器驱动
-- **多任务**：内核线程 + 时间片轮转 + 定时器抢占（200ms/片，三线程：A、B、Shell）
-- **交互式 Shell**：作为第三个内核线程参与调度，非阻塞读取 + 主动交权
+- **多任务 + 睡眠**：内核线程 + 时间片轮转 + 定时器抢占（200ms/片），任务状态机
+  （RUNNING/READY/BLOCKED），`task_sleep` 主动睡眠、到点由定时器唤醒
+- **信号量同步**：计数信号量 `sem_init/sem_wait/sem_post`（FIFO 等待队列、关中断
+  保原子），count=1 即互斥锁；演示含 ping-pong 严格交替、生产者-消费者环形缓冲区
+- **交互式 Shell**：作为内核线程参与调度，非阻塞读取 + 主动交权
 - **内存管理**：MMU 页表初始化 + 简单页分配器（LIFO，4KB/页）
 - **关机**：Ctrl+C（字节 `0x03`）触发 PSCI `SYSTEM_OFF`，QEMU 干净退出
 
@@ -28,7 +33,9 @@ make clean      # 删除 build/ 下所有产物
 bash run.sh
 ```
 
-启动后你会看到 A/B 两个线程交替打印、定时器 `tick` 和 shell 提示符 `> `。输入 `help` 查看可用命令。
+启动后你会看到 A/B 两个线程交替打印（带 `uptime` 毫秒计数）、`PING`/`pong`
+严格交替、`P:`/`C:` 生产者-消费者配对输出（三个信号量演示）和 shell 提示符 `> `。
+输入 `help` 查看可用命令。
 
 ## Shell 命令
 
@@ -40,19 +47,22 @@ bash run.sh
 | `clear` | 清屏（输出几个空行） |
 | `Ctrl+C` | 关机（PSCI SYSTEM_OFF） |
 
-> Shell 是第三个内核线程，每 600ms（3 线程 × 200ms 时间片）轮转一次，输入会在它的时间片内被处理。
+> Shell 是内核线程之一，每 200ms 时间片轮转一次，输入会在它的时间片内被处理。
 
 ## 目录结构
 
 ```
 arch/      CPU 架构层：启动(boot.S)、异常向量表(exception.S)、上下文切换(switch.S)、异常处理
-kernel/    内核核心：入口(main.cpp)、调度(sched)、MMU、页分配器、GIC、定时器
+kernel/    内核核心：入口(main.cpp)、调度(sched)、信号量(sem)、演示模块(demo)、MMU、页分配器、GIC、定时器
 drivers/   设备驱动：UART(PL011)、Shell
-lib/       通用库：printf、string（手写，无 libc）
+lib/       通用库：printf（内置打印锁）、string（手写，无 libc）
 include/   头文件，镜像源码分层（include/kernel/、include/drivers/ ...），types.hpp 为全局基类型
 build/     编译产物（.o 与 myos.elf），git 忽略
 docs/      设计文档
 ```
+
+> `main.cpp` 只做启动编排：硬件初始化 + `demo_init()`（挂载 A/B、ping-pong、
+> 生产者-消费者演示任务）+ shell。演示代码集中在 `kernel/demo.cpp`。
 
 ## 内存布局
 
@@ -63,6 +73,8 @@ docs/      设计文档
 ## 文档
 
 - `docs/multitasking.md` — 多任务实现完整记录：TCB 结构、`switch_to` 上下文切换、假现场、时间片抢占，以及踩过的 4 个真实 bug（假现场尺寸、`str sp` 编码约束、EOI 顺序、PSTATE.I 继承）
+- `docs/sync-guide.md` — 信号量 + 睡眠/唤醒调度设计笔记：接口规格、实测结论（DAIF 位图）、易错点（丢失唤醒、PSTATE.I 继承）、review 检查清单
+- `docs/prodcons-exercise.md` — 生产者-消费者练习：PV 填空框架（答案在 `kernel/demo.cpp`）
 
 ## 相关说明
 

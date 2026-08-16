@@ -13,8 +13,8 @@ LDFLAGS = -T linker.ld -nostdlib -ffreestanding -static -no-pie
 
 # 源文件（链接顺序：arch 第一，其余任意）
 CXX_SOURCES = arch/exception_handler.cpp \
-              kernel/main.cpp kernel/sched.cpp kernel/mmu.cpp \
-              kernel/page_alloc.cpp kernel/gic.cpp kernel/timer.cpp \
+              kernel/main.cpp kernel/sched.cpp kernel/sem.cpp kernel/demo.cpp \
+              kernel/mmu.cpp kernel/page_alloc.cpp kernel/gic.cpp kernel/timer.cpp \
               drivers/uart.cpp drivers/shell.cpp \
               lib/printf.cpp lib/string.cpp
 ASM_SOURCES = arch/boot.S arch/exception.S arch/switch.S
